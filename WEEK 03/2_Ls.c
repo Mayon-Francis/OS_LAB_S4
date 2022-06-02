@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 	printf("Reading directory: %s \n", argv[1]);
     while ((link = readdir(dp)) != 0)
     {
-        printf("% s\n", link->d_name);
+        printf("%s\n", link->d_name);
     }
     closedir(dp);
 }
