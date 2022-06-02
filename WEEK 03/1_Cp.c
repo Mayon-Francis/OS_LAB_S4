@@ -1,4 +1,4 @@
-//  gcc file1.c && ./a.out test.txt
+//  gcc 1_Cp.c && ./a.out test.txt testCopy.txt
 
 #include <fcntl.h>
 #include <unistd.h>
