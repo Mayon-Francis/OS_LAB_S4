@@ -1,23 +1,84 @@
 // 5   1 1 0 1  2 0 0 1  3 2 0 1  4 1 1 1  5 1 1 1
 #include <stdio.h>
 #include <stdlib.h>
-
+// To use time library of C
+#include <time.h>
+  
+void delay(int number_of_seconds)
+{
+    // Converting time into milli_seconds
+    int milli_seconds = 1000 * number_of_seconds;
+  
+    // Storing start time
+    clock_t start_time = clock();
+  
+    // looping till required time is not achieved
+    while (clock() < start_time + milli_seconds)
+        ;
+}
 typedef struct {
     int pid;
     int priority;
     int arrivalTime;
     int burstTime;
+    int remainingBurstTime;
     int waitTime;
     int turnAroundTime;
 } process;
 
 process processList[100];
+
+// This will store process data at the end of the schedule loop,
+// once the process is removed from the readyQueue
+process processDump[100];
+
+int processDumpIndex = -1;
+void pushIntoDump(process a) {
+    processDumpIndex++;
+    processDump[processDumpIndex] = a;
+}
+
+void printProcessDump() {
+    if(processDumpIndex == -1) {
+        printf("\nProcessDump empty\n");
+        return;
+    }
+    printf("\n****ProcessDump****");
+    float totalTurnAround = 0;
+    float totalWait = 0;
+    printf("\n\nPID\tPriority\tArrival\tBurst\tWait\tTurnaround");
+    for(int i=0; i<=processDumpIndex; i++) {
+        // printf("\n Pid: %d", processDump[i].pid);
+        // printf("\n Priority: %d", processDump[i].priority);;
+        // printf("\n ArrivalTime: %d", processDump[i].arrivalTime);
+        // printf("\n BurstTime: %d", processDump[i].burstTime);
+        // printf("\n Wait Time: %d", processDump[i].waitTime);
+        // printf("\n Turnaround Time: %d", processDump[i].turnAroundTime);
+
+        printf("\n");
+        printf("%d\t%d\t\t%d\t%d\t%d\t%d",
+            processDump[i].pid,
+            processDump[i].priority,
+            processDump[i].arrivalTime,
+            processDump[i].burstTime,
+            processDump[i].waitTime,
+            processDump[i].turnAroundTime
+        );
+        totalTurnAround += processDump[i].turnAroundTime;
+        totalWait += processDump[i].waitTime;
+    }
+
+    printf("\n\n Avg Turaround time: %f", (float)totalTurnAround/(processDumpIndex+1));
+    printf("\n Avg Wait time: %f \n", (float)totalWait/(processDumpIndex+1));
+}
+
 int processCount = 0;
 int currentTime = 0;
 
 void removeProcess(int pid) {
     int i;
     for(i=0; i<processCount && processList[i].pid == pid; i++);
+    i--;
     if(i < processCount) {
         for(int j=i; j< (processCount-1); j++) {
             processList[j] = processList[j+1];
@@ -39,17 +100,40 @@ void pushQ(process a) {
         readyQueue[readyQueueEnd] = a;
     }
 }
-void popQ(process a) {
+
+void printReadyQueue() {
+    if(readyQueueStart == -1) {
+        printf("\nReady Queue empty\n");
+        return;
+    }
+    printf("\n****Ready Processes****");
+    for(int i=readyQueueStart; i<=readyQueueEnd; i++) {
+        printf("\nPid: %d", readyQueue[i].pid);
+        printf("\npriority: %d", readyQueue[i].priority);;
+        printf("\narrivalTime: %d", readyQueue[i].arrivalTime);
+        printf("\nburstTime: %d", readyQueue[i].burstTime);
+        printf("\nRemaining burstTime: %d", readyQueue[i].remainingBurstTime);
+    }
+}
+
+process popQ() {
+    //printf("\n\nBefore Popping \n");
+    //printReadyQueue();
     if(readyQueueEnd == -1) {
         printf("Invalid pop");
     } else {
-        for(int i=0; i<readyQueueEnd-1; i++) {
+        process popped = readyQueue[0];
+        for(int i=0; i<readyQueueEnd; i++) {
             readyQueue[i] = readyQueue[i+1];
+            //printf("\n\n\n %d, %d", i, i+1);
         }
         readyQueueEnd--;
         if(readyQueueEnd == -1) {
             readyQueueStart = -1;
         }
+        //printf("\n\n After Popping \n");
+        //printReadyQueue();
+        return popped;
     }
 }
 
@@ -67,6 +151,10 @@ void getProcess() {
         scanf("%d", &processList[i].arrivalTime);
         printf("burstTime: ");
         scanf("%d", &processList[i].burstTime);
+        processList[i].remainingBurstTime = processList[i].burstTime;
+        //printf("\n%d,   %d", processList[i].remainingBurstTime,  processList[i].burstTime );
+        processList[i].waitTime = 0;
+        processList[i].turnAroundTime = 0;
         printf("\n");
     }
  
@@ -82,19 +170,7 @@ void printProcess() {
     }
 }
 
-void printReadyQueue() {
-    if(readyQueueStart == -1) {
-        printf("\nReady Queue empty\n");
-        return;
-    }
-    printf("\n****Ready Processes****");
-    for(int i=readyQueueStart; i<=readyQueueEnd; i++) {
-        printf("\nPid: %d", readyQueue[i].pid);
-        printf("\npriority: %d", readyQueue[i].priority);;
-        printf("\narrivalTime: %d", readyQueue[i].arrivalTime);
-        printf("\nburstTime: %d", readyQueue[i].burstTime);
-    }
-}
+
 
 int compareProcessArrival(const void* argA, const void* argB)
 {
@@ -125,20 +201,39 @@ void insertNewProcessIntoQueue() {
     qsort(readyQueue, readyQueueEnd-readyQueueStart, sizeof(process), compareProcessPriority);
 }
 void scheduler() {
-    printf("\nInitial\n");
-    printProcess();
+    //printf("\nInitial\n");
+    //printProcess();
     qsort(processList, processCount, sizeof(process), compareProcessArrival);
     insertNewProcessIntoQueue();
-    printProcess();
-    printReadyQueue();
+    //printProcess();
+    //printReadyQueue();
     while(readyQueueStart != -1) {
         qsort(readyQueue, readyQueueEnd-readyQueueStart, sizeof(process), compareProcessPriority);
-        // TODO: Execute a process and pop from Q
+        //printf("\nRemaining of %d: %d",readyQueue[0].pid,readyQueue[0].remainingBurstTime);
+        readyQueue[0].remainingBurstTime--;
+        //printf("\nRemaining of %d: %d",readyQueue[0].pid, readyQueue[0].remainingBurstTime);
+        if(readyQueue[0].remainingBurstTime == 0) {
+            process popped = popQ();
+            //printf("\nPopped  %d: %d",popped.pid,popped.remainingBurstTime);
+            popped.turnAroundTime = popped.burstTime + popped.waitTime;
+            pushIntoDump(popped);
+            //printReadyQueue();
+            for(int i=0; i<=readyQueueEnd; i++) {
+                readyQueue[i].waitTime++;
+            }
+        } else {
+            for(int i=1; i<=readyQueueEnd; i++) {
+                readyQueue[i].waitTime++;
+            }
+        }
+        //printProcess();
+        //printProcessDump();
+        //delay(100);
         currentTime ++;
         insertNewProcessIntoQueue();
-        printProcess();
-        printReadyQueue();
     }
+    //printf("\n\nSCHEDULING OVER\n\n!");
+    printProcessDump();
 }
 
 int  main() {
