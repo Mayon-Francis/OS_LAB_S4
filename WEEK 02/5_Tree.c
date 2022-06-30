@@ -12,9 +12,8 @@ void printFiles(char path[100], int tabCount)
     if ((dirp = opendir(path)) == NULL)
     {
     }
-    printf("%s %d", path, tabCount);
-    for(int i=0; i<tabCount; i++)
-    	printf("\t");
+    //printf("%s %d \n", path, tabCount);
+    
     while (dptr = readdir(dirp))
     {
         if (strcmp(dptr->d_name, ".") == 0)
@@ -25,15 +24,16 @@ void printFiles(char path[100], int tabCount)
         {
             continue;
         }
-
-        printf("%-10s\t", dptr->d_name);
+        for(int i=0; i<tabCount; i++)
+    	    printf("\t");
+        printf("%s", dptr->d_name);
         if (dptr->d_type == FILE)
         {
-            printf("FILE\n");
+            printf("\n");
         }
         else
         {
-            printf("FOLDER\n");
+            printf("/\n");
             strcat(path, "/");
             strcat(path, dptr->d_name);
             printFiles(path, tabCount+1);
